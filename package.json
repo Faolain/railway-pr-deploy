@@ -1,0 +1,19 @@
+{
+  "name": "railway-pr-deploy",
+  "version": "1.0.0",
+  "description": "Github Action to deploy railway prs with dynamic env variables",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Faolain/railway-pr-deploy.git"
+  },
+  "author": "Faolain",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Faolain/railway-pr-deploy/issues"
+  },
+  "homepage": "https://github.com/Faolain/railway-pr-deploy#readme"
+}
