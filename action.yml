@@ -24,10 +24,10 @@ inputs:
     required: true
   branch_name:
     description: 'The name of the branch'
-    required: false
+    required: true
   repository:
     description: 'The name of the repository'
-    required: false
+    required: true
   token:
     description: 'The token to use to access the GitHub API'
     required: false
