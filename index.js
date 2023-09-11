@@ -136,12 +136,14 @@ async function deployService(environmentId, serviceId) {
         `
 
         let variables = {
-            "branch": BRANCH_NAME,
-            "environmentId": environmentId,
-            "projectId": PROJECT_ID,
-            "provider": PROVIDER,
-            "repository": REPOSITORY,
-            "serviceId": serviceId
+            input: {
+                "branch": BRANCH_NAME,
+                "environmentId": environmentId,
+                "projectId": PROJECT_ID,
+                "provider": PROVIDER,
+                "repository": REPOSITORY,
+                "serviceId": serviceId
+            }
         }
 
         return await railwayGraphQLRequest(query, variables)
