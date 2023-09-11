@@ -15,5 +15,13 @@
   "bugs": {
     "url": "https://github.com/Faolain/railway-pr-deploy/issues"
   },
-  "homepage": "https://github.com/Faolain/railway-pr-deploy#readme"
+  "homepage": "https://github.com/Faolain/railway-pr-deploy#readme",
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^5.1.1",
+    "@vercel/ncc": "^0.38.0",
+    "axios": "^1.5.0",
+    "graphql": "^16.8.0",
+    "graphql-request": "^6.1.0"
+  }
 }

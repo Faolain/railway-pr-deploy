@@ -1,0 +1,43 @@
+name: 'Railway PR Deploy Action'
+description: 'Creates an environment with provided environment variables and deploys them to Railway.'
+inputs:
+  RAILWAY_API_TOKEN:  # railway token
+    description: 'Railway API Token'
+    required: true
+  PROJECT_ID:
+    description: 'The id of the project to create environments on. Can be found on Settings -> General page'
+    required: true
+  SRC_ENVIRONMENT_NAME:
+    description: 'The name of the environment to base the PRs off of. '
+    required: true
+  SRC_ENVIRONMENT_ID:
+    description: 'The id of the environment to base the PRs off of. If this is provided, SRC_ENVIRONMENT_NAME will be ignored. '
+    required: false
+  DEST_ENV_NAME:
+    description: 'The name of the deployed PR environment. Usually a combination of pr-<PR_NUMBER>-<SHORT_COMMIT_HASH> passed inside of workflow'
+    required: true
+  ENV_VARS:
+    description: 'The environment variables to set on the PR environment. Should be a JSON object of key value pairs. e.g. {"DATABASE_URL": "test_url", "A": "abc", "D": "efg"}'
+    required: false
+  PROVIDER:
+    description: 'The provider to use for the PR environment. Can be python, see https://nixpacks.com/docs/guides/configuring-builds for more info.'
+    required: true
+  action_type:
+    description: 'The type of action to perform. Can be create, update, or destroy'
+    required: true
+  branch_name:
+    description: 'The name of the branch'
+    required: false
+  repository:
+    description: 'The name of the repository'
+    required: false
+  token:
+    description: 'The token to use to access the GitHub API'
+    required: false
+outputs: 
+  domain:
+    description: 'The domain of the deployed PR environment'
+    required: true
+runs:
+  using: 'node16'
+  main: 'index.js'
