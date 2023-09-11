@@ -22,9 +22,6 @@ inputs:
   PROVIDER:
     description: 'The provider to use for the PR environment. Can be python, see https://nixpacks.com/docs/guides/configuring-builds for more info.'
     required: true
-  action_type:
-    description: 'The type of action to perform. Can be create, update, or destroy'
-    required: true
   branch_name:
     description: 'The name of the branch'
     required: false

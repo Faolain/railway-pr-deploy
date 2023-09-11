@@ -37668,8 +37668,6 @@ const ENDPOINT = 'https://backboard.railway.app/graphql/v2';
 const BRANCH_NAME = core.getInput('branch_name');
 const REPOSITORY = core.getInput('repository');
 
-const actionType = core.getInput('action_type');
-
 async function railwayGraphQLRequest(query, variables) {
     const client = new GraphQLClient(ENDPOINT, {
         headers: {
