@@ -34,7 +34,6 @@ inputs:
 outputs: 
   domain:
     description: 'The domain of the deployed PR environment'
-    required: true
 runs:
   using: 'node16'
   main: 'dist/index.js'
