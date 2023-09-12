@@ -69,11 +69,20 @@ async function createEnvironment(sourceEnvironmentId) {
             environmentCreate(input: $input) {
                 id
                 createdAt
+                deploymentTriggers {
+                    edges {
+                        node {
+                            id
+                            environmentId
+                            branch
+                            projectId
+                        }
+                    }
+                }
                 serviceInstances {
                     edges {
                         node {
                             id
-                            serviceId
                             domains {
                                 serviceDomains {
                                     domain
@@ -124,25 +133,20 @@ async function updateEnvironment(environmentId, serviceId, variables) {
     }
 }
 
-async function deployService(environmentId, serviceId) {
+async function deploymentTriggerUpdate(deploymentTriggerId) {
     try {
         let query = gql`
-        mutation deploymentTriggerCreate($input: DeploymentTriggerCreateInput!) {
-            deploymentTriggerCreate(input: $input) {
+        mutation deploymentTriggerUpdate($id: String!, $input: DeploymentTriggerUpdateInput!) {
+            deploymentTriggerUpdate(id: $id, input: $input) {
                 id
-                branch
             }
         }
         `
 
         let variables = {
+            id: deploymentTriggerId,
             input: {
                 "branch": BRANCH_NAME,
-                "environmentId": environmentId,
-                "projectId": PROJECT_ID,
-                "provider": PROVIDER,
-                "repository": REPOSITORY,
-                "serviceId": serviceId
             }
         }
 
@@ -178,40 +182,39 @@ async function deleteEnvironment(environmentId) {
 
 async function run() {
     try {
-        // Check if Environment already exists
         const environmentIfExists = await checkIfEnvironmentExists();
         if (environmentIfExists) {
-            console.log('Environment already exists')
-            const { environmentId, serviceId } = environmentIfExists;
-
-            console.log('Deploying Service');
-            await deployService(environmentId, serviceId);
-        } else {
-            console.log('Environment does not exist')
-            let srcEnvironmentId = SRC_ENVIRONMENT_ID;
-
-            // Get Source Environment ID to base new PR environment from
-            if (!SRC_ENVIRONMENT_ID) {
-                let response = await getEnvironmentId();
-                srcEnvironmentId = response.environments.edges.filter((edge) => edge.node.name === SRC_ENVIRONMENT_NAME)[0].node.id;
-            }
-
-            // Create the new Environment based on the Source Environment
-            const createdEnvironment = await createEnvironment(srcEnvironmentId);
-            console.dir(createdEnvironment, { depth: null })
-
-            const { id: environmentId } = createdEnvironment.environmentCreate;
-            const { serviceId } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node;
-
-            // Update the Environment Variables
-            const updatedEnvironmentVariables = await updateEnvironment(environmentId, serviceId, ENV_VARS);
-
-            // Deploy the Service
-            await deployService(environmentId, serviceId);
-
-            const { domain } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node.domains.serviceDomains[0];
-            core.setOutput('service_domain', domain);
+            throw new Error('Environment already exists. Please delete the environment via API or Railway Dashboard and try again.')
         }
+
+        console.log('Environment does not exist, creating new Environment...')
+        let srcEnvironmentId = SRC_ENVIRONMENT_ID;
+
+        // Get Source Environment ID to base new PR environment from
+        if (!SRC_ENVIRONMENT_ID) {
+            let response = await getEnvironmentId();
+            srcEnvironmentId = response.environments.edges.filter((edge) => edge.node.name === SRC_ENVIRONMENT_NAME)[0].node.id;
+        }
+
+        // Create the new Environment based on the Source Environment
+        const createdEnvironment = await createEnvironment(srcEnvironmentId);
+        console.dir(createdEnvironment, { depth: null })
+
+        const { id: environmentId } = createdEnvironment.environmentCreate;
+        const { id: deploymentTriggerId } = createdEnvironment.environmentCreate.deploymentTriggers.edges[0].node;
+
+        // Set the Deployment Trigger Branch
+        await deploymentTriggerUpdate(deploymentTriggerId);
+
+        // Get the Service ID
+        const { serviceId } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node;
+
+        // Update the Environment Variables
+        const updatedEnvironmentVariables = await updateEnvironment(environmentId, serviceId, ENV_VARS);
+
+        const { domain } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node.domains.serviceDomains[0];
+        console.log('domain', domain)
+        core.setOutput('service_domain', domain);
     } catch (error) {
         console.error('Error in API calls:', error);
         // Handle the error, e.g., fail the action
