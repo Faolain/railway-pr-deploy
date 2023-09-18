@@ -25,11 +25,8 @@ inputs:
   branch_name:
     description: 'The name of the branch'
     required: true
-  repository:
-    description: 'The name of the repository'
-    required: true
-  token:
-    description: 'The token to use to access the GitHub API'
+  DEPLOYMENT_MAX_TIMEOUT:
+    description: 'The maximum amount of time to wait for the deployment to finish. Defaults to 10 minutes.'
     required: false
 outputs: 
   domain:
