@@ -21,7 +21,7 @@ This action makes it simple to deploy a PR environment based on an already exist
 
 ## Outputs
 
-### `domain`
+### `service_domain`
 
 The url of PR deployment preview. This would be an api endpoint for example for the service deployed.
 
