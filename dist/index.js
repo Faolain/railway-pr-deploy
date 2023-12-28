@@ -31501,17 +31501,13 @@ async function run() {
 
         // Get the names for each deployed service
         for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
-            const { name } = serviceInstance.node;
-            // Get the Domain for the Service
-            for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
-                const { serviceDomains } = serviceInstance.node.domains;
-                console.log('Service Domains:', serviceDomains)
-            }
+            const { name, domains } = serviceInstance.node;
 
             if ((API_SERVICE_NAME && name === API_SERVICE_NAME) || name === 'app' || name === 'backend' || name === 'web') {
-                const { domain } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node.domains.serviceDomains?.[0];
+                const { domain } = domains.serviceDomains?.[0];
                 console.log('Domain:', domain)
                 core.setOutput('service_domain', domain);
+                break;
             }
         }
     } catch (error) {
