@@ -31423,7 +31423,15 @@ async function updateEnvironmentVariablesForServices(environmentId, serviceInsta
     }
 }
 
-async function redeployAllServices(environmentId, serviceIds) {
+async function redeployAllServices(environmentId, serviceInstances) {
+    const serviceIds = [];
+
+    // Extract service IDs
+    for (const serviceInstance of serviceInstances.edges) {
+        const { serviceId } = serviceInstance.node;
+        serviceIds.push(serviceId);
+    }
+
     try {
         // Create an array of promises for redeployments
         const redeployPromises = serviceIds.map(serviceId =>
@@ -31476,7 +31484,7 @@ async function run() {
         const { serviceInstances } = createdEnvironment.environmentCreate;
 
         // Update the Environment Variables on each Service Instance
-        await updateEnvironmentVariablesForServices(environmentId, createdEnvironment.environmentCreate.serviceInstances, ENV_VARS);
+        await updateEnvironmentVariablesForServices(environmentId, serviceInstances, ENV_VARS);
 
         // Wait for the created environment to finish initializing
         console.log("Waiting 15 seconds for deployment to initialize and become available")
@@ -31489,10 +31497,9 @@ async function run() {
         await updateAllDeploymentTriggers(deploymentTriggerIds);
 
         // Redeploy the Services
-        await redeployAllServices(environmentId, serviceIds);
+        await redeployAllServices(environmentId, serviceInstances);
 
         // Get the names for each deployed service
-        const serviceNames = [];
         for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
             const { name } = serviceInstance.node;
             // Get the Domain for the Service
