@@ -1,36 +1,39 @@
-name: 'Railway PR Deploy Action'
-description: 'Creates an environment with provided environment variables and deploys them to Railway.'
+name: "Railway PR Deploy Action"
+description: "Creates an environment with provided environment variables and deploys them to Railway."
 inputs:
-  RAILWAY_API_TOKEN:  # railway token
-    description: 'Railway API Token'
+  RAILWAY_API_TOKEN: # railway token
+    description: "Railway API Token"
     required: true
   PROJECT_ID:
-    description: 'The id of the project to create environments on. Can be found on Settings -> General page'
+    description: "The id of the project to create environments on. Can be found on Settings -> General page"
     required: true
   SRC_ENVIRONMENT_NAME:
-    description: 'The name of the environment to base the PRs off of. '
+    description: "The name of the environment to base the PRs off of. "
     required: true
   SRC_ENVIRONMENT_ID:
-    description: 'The id of the environment to base the PRs off of. If this is provided, SRC_ENVIRONMENT_NAME will be ignored. '
+    description: "The id of the environment to base the PRs off of. If this is provided, SRC_ENVIRONMENT_NAME will be ignored. "
     required: false
   DEST_ENV_NAME:
-    description: 'The name of the deployed PR environment. Usually a combination of pr-<PR_NUMBER>-<SHORT_COMMIT_HASH> passed inside of workflow'
+    description: "The name of the deployed PR environment. Usually a combination of pr-<PR_NUMBER>-<SHORT_COMMIT_HASH> passed inside of workflow"
     required: true
   ENV_VARS:
     description: 'The environment variables to set on the PR environment. Should be a JSON object of key value pairs. e.g. {"DATABASE_URL": "test_url", "A": "abc", "D": "efg"}'
     required: false
+  API_SERVICE_NAME:
+    description: "The name of the API service to use for the PR environment. This is used to identify the domain of the deployed PR environment."
+    required: false
   PROVIDER:
-    description: 'The provider to use for the PR environment. Can be python, see https://nixpacks.com/docs/guides/configuring-builds for more info.'
+    description: "The provider to use for the PR environment. Can be python, see https://nixpacks.com/docs/guides/configuring-builds for more info."
     required: true
   branch_name:
-    description: 'The name of the branch'
+    description: "The name of the branch"
     required: true
   DEPLOYMENT_MAX_TIMEOUT:
-    description: 'The maximum amount of time to wait for the deployment to finish. Defaults to 10 minutes.'
+    description: "The maximum amount of time to wait for the deployment to finish. Defaults to 10 minutes."
     required: false
-outputs: 
+outputs:
   domain:
-    description: 'The domain of the deployed PR environment'
+    description: "The domain of the deployed PR environment"
 runs:
-  using: 'node16'
-  main: 'dist/index.js'
+  using: "node16"
+  main: "dist/index.js"
