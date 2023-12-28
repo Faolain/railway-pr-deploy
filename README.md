@@ -14,7 +14,8 @@ This action makes it simple to deploy a PR environment based on an already exist
 | SRC_ENVIRONMENT_NAME        | [x]|         | The name of the environment to base the PRs off of.                                 |
 | SRC_ENVIRONMENT_ID   | [ ]|         | The id of the environment to base the PRs off of. If this is provided, SRC_ENVIRONMENT_NAME will be ignored. '                  |
 | DEST_ENV_NAME       | [x] |         | The name of the deployed PR environment. Usually a combination of pr-<PR_NUMBER>-<SHORT_COMMIT_HASH> passed inside of workflow                 |
-| ENV_VARS         | [ ]  |         | The environment variables to set on the PR environment. Should be a JSON object of key value pairs. e.g. ` '{"database_url": "${{ env.DYNAMIC_VAR }}", "other_key": "other_value"}'`                                            |
+| ENV_VARS         | [ ]  |         | The environment variables to set on the PR environment. Should be a JSON object of key value pairs. e.g. ` '{"database_url": "${{ env.DYNAMIC_VAR }}", "other_key": "other_value"}'`        
+| API_SERVICE_NAME         | [ ]  |         | The name of the API service to use for the PR environment. This is used to identify the domain of the deployed PR environment. Will default first this value otherwise it will instead try "app" then "backend" then 'web".                                      |
 | PROVIDER   |  [x]  |         | 'The provider to use for the PR environment. Can be python, see https://nixpacks.com/docs/guides/configuring-builds for more info.'                                                                 |
 | branch_name               | [x]  |         | The name of the branch you will be deploying from Github. Should be `${{ github.head_ref }}`         
 | DEPLOYMENT_MAX_TIMEOUT       |  [ ]|         | 'The maximum amount of time to wait for the deployment to finish. Defaults to 10 minutes.'

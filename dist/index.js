@@ -31117,6 +31117,7 @@ const SRC_ENVIRONMENT_NAME = core.getInput('SRC_ENVIRONMENT_NAME');
 const SRC_ENVIRONMENT_ID = core.getInput('SRC_ENVIRONMENT_ID');
 const DEST_ENV_NAME = core.getInput('DEST_ENV_NAME');
 const ENV_VARS = core.getInput('ENV_VARS');
+const API_SERVICE_NAME = core.getInput('API_SERVICE_NAME');
 const ENDPOINT = 'https://backboard.railway.app/graphql/v2';
 
 // Github Required Inputs
@@ -31136,6 +31137,50 @@ async function railwayGraphQLRequest(query, variables) {
     } catch (error) {
         core.setFailed(`Action failed with error: ${error}`);
     }
+}
+
+async function getProject() {
+    let query =
+        `query project($id: String!) {
+            project(id: $id) {
+                name
+                services {
+                    edges {
+                        node {
+                            id
+                            name
+                        }
+                    }
+                }
+                environments {
+                    edges {
+                        node {
+                            id
+                            name
+                            serviceInstances {
+                                edges {
+                                    node {
+                                        serviceId
+                                        startCommand
+                                        domains {
+                                            serviceDomains {
+                                                domain
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }`
+
+    const variables = {
+        "id": PROJECT_ID,
+    }
+
+    return await railwayGraphQLRequest(query, variables)
 }
 
 async function getEnvironments() {
@@ -31298,6 +31343,7 @@ async function monitorDeploymentStatus() {
             throw new Error('Unexpected response structure or environment not found. Exiting.');
         }
 
+        // TODO - Handle multiple deployments We are only checking the first deployment status
         let deploymentStatus = filteredEdges[0]?.node?.deployments?.edges?.[0]?.node?.status;
 
         if (!deploymentStatus) {
@@ -31339,6 +31385,59 @@ async function serviceInstanceRedeploy(environmentId, serviceId) {
     }
 }
 
+async function updateAllDeploymentTriggers(deploymentTriggerIds) {
+    try {
+        // Create an array of promises
+        const updatePromises = deploymentTriggerIds.map(deploymentTriggerId =>
+            deploymentTriggerUpdate(deploymentTriggerId)
+        );
+
+        // Await all promises
+        await Promise.all(updatePromises);
+        console.log("All deployment triggers updated successfully.");
+    } catch (error) {
+        console.error("An error occurred during the update:", error);
+    }
+}
+
+async function updateEnvironmentVariablesForServices(environmentId, serviceInstances, ENV_VARS) {
+    const serviceIds = [];
+
+    // Extract service IDs
+    for (const serviceInstance of serviceInstances.edges) {
+        const { serviceId } = serviceInstance.node;
+        serviceIds.push(serviceId);
+    }
+
+    try {
+        // Create an array of promises for updating environment variables
+        const updatePromises = serviceIds.map(serviceId =>
+            updateEnvironment(environmentId, serviceId, ENV_VARS)
+        );
+
+        // Await all promises to complete
+        await Promise.all(updatePromises);
+        console.log("Environment variables updated for all services.");
+    } catch (error) {
+        console.error("An error occurred during the update:", error);
+    }
+}
+
+async function redeployAllServices(environmentId, serviceIds) {
+    try {
+        // Create an array of promises for redeployments
+        const redeployPromises = serviceIds.map(serviceId =>
+            serviceInstanceRedeploy(environmentId, serviceId)
+        );
+
+        // Await all promises to complete
+        await Promise.all(redeployPromises);
+        console.log("All services redeployed successfully.");
+    } catch (error) {
+        console.error("An error occurred during redeployment:", error);
+    }
+}
+
 async function run() {
     try {
         // Get Environments to check if the environment already exists
@@ -31365,13 +31464,19 @@ async function run() {
         console.dir(createdEnvironment, { depth: null })
 
         const { id: environmentId } = createdEnvironment.environmentCreate;
-        const { id: deploymentTriggerId } = createdEnvironment.environmentCreate.deploymentTriggers.edges[0].node;
 
-        // Get the Service ID
-        const { serviceId } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node;
+        // Get all the Deployment Triggers
+        const deploymentTriggerIds = [];
+        for (const deploymentTrigger of createdEnvironment.environmentCreate.deploymentTriggers.edges) {
+            const { id: deploymentTriggerId } = deploymentTrigger.node;
+            deploymentTriggerIds.push(deploymentTriggerId);
+        }
 
-        // Update the Environment Variables
-        const updatedEnvironmentVariables = await updateEnvironment(environmentId, serviceId, ENV_VARS);
+        // Get all the Service Instances
+        const { serviceInstances } = createdEnvironment.environmentCreate;
+
+        // Update the Environment Variables on each Service Instance
+        await updateEnvironmentVariablesForServices(environmentId, createdEnvironment.environmentCreate.serviceInstances, ENV_VARS);
 
         // Wait for the created environment to finish initializing
         console.log("Waiting 15 seconds for deployment to initialize and become available")
@@ -31380,15 +31485,28 @@ async function run() {
         // Wait for the initial deployment (which is autocreated by createEnvironment) to finish, otherwise you cannot run concurrent deployments
         await monitorDeploymentStatus();
 
-        // Set the Deployment Trigger Branch
-        await deploymentTriggerUpdate(deploymentTriggerId);
+        // Set the Deployment Trigger Branch for Each Service 
+        await updateAllDeploymentTriggers(deploymentTriggerIds);
 
-        // Redeploy the Service
-        await serviceInstanceRedeploy(environmentId, serviceId);
+        // Redeploy the Services
+        await redeployAllServices(environmentId, serviceIds);
 
-        const { domain } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node.domains.serviceDomains[0];
-        console.log('Domain:', domain)
-        core.setOutput('service_domain', domain);
+        // Get the names for each deployed service
+        const serviceNames = [];
+        for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
+            const { name } = serviceInstance.node;
+            // Get the Domain for the Service
+            for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
+                const { serviceDomains } = serviceInstance.node.domains;
+                console.log('Service Domains:', serviceDomains)
+            }
+
+            if ((API_SERVICE_NAME && name === API_SERVICE_NAME) || name === 'app' || name === 'backend' || name === 'web') {
+                const { domain } = createdEnvironment.environmentCreate.serviceInstances.edges[0].node.domains.serviceDomains?.[0];
+                console.log('Domain:', domain)
+                core.setOutput('service_domain', domain);
+            }
+        }
     } catch (error) {
         console.error('Error in API calls:', error);
         // Handle the error, e.g., fail the action
