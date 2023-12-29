@@ -31446,6 +31446,21 @@ async function redeployAllServices(environmentId, serviceInstances) {
     }
 }
 
+async function getService(serviceId) {
+    let query =
+        `query environments($id: String!) {
+            service(id: $id) {
+                name
+                }
+        }`
+
+    const variables = {
+        "id": serviceId,
+    }
+
+    return await railwayGraphQLRequest(query, variables)
+}
+
 async function run() {
     try {
         // Get Environments to check if the environment already exists
@@ -31501,8 +31516,9 @@ async function run() {
 
         // Get the names for each deployed service
         for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
-            const { name, domains } = serviceInstance.node;
-
+            const { domains } = serviceInstance.node;
+            const { service } = await getService(serviceInstance.node.serviceId);
+            const { name } = service;
             if ((API_SERVICE_NAME && name === API_SERVICE_NAME) || name === 'app' || name === 'backend' || name === 'web') {
                 const { domain } = domains.serviceDomains?.[0];
                 console.log('Domain:', domain)
