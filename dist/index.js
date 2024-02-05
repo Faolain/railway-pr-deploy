@@ -31323,46 +31323,6 @@ async function deploymentTriggerUpdate(deploymentTriggerId) {
     }
 }
 
-async function monitorDeploymentStatus() {
-    const parsedTimeout = parseInt(DEPLOYMENT_MAX_TIMEOUT);
-    const MAX_TIMEOUT = isNaN(parsedTimeout) ? 600000 : parsedTimeout;
-
-    const startTime = Date.now();
-
-    while (true) { // Infinite loop, but we have break and throw conditions inside.
-        if (Date.now() - startTime > MAX_TIMEOUT) {
-            throw new Error('Maximum timeout duration reached trying to monitor deployment. Exiting.');
-        }
-
-        // Get Environments to check if the deployment has finished
-        let response = await getEnvironments();
-
-        const filteredEdges = response?.environments?.edges?.filter((edge) => edge.node.name === DEST_ENV_NAME);
-
-        if (!filteredEdges || filteredEdges.length === 0) {
-            throw new Error('Unexpected response structure or environment not found. Exiting.');
-        }
-
-        // TODO - Handle multiple deployments We are only checking the first deployment status
-        let deploymentStatus = filteredEdges[0]?.node?.deployments?.edges?.[0]?.node?.status;
-
-        if (!deploymentStatus) {
-            throw new Error('Deployment status not found in the response. Exiting.');
-        }
-
-        if (deploymentStatus === 'SUCCESS') {
-            break;  // Exit the loop
-        } else if (deploymentStatus === 'FAILED') {
-            throw new Error('Deployment failed. Please check the Railway Dashboard for more information.');
-        } else if (['BUILDING', 'DEPLOYING', 'INITIALIZING', 'QUEUED', 'WAITING'].includes(deploymentStatus)) {
-            console.log('Deployment is still in progress. Status:', deploymentStatus, '. Waiting 20 seconds and trying again...');
-            await new Promise(resolve => setTimeout(resolve, 20000)); // Wait for 20 seconds and try again
-        } else {
-            throw new Error(`Unhandled deployment status. Please check the Railway Dashboard for more information. Status: ${deploymentStatus}. Response: ${JSON.stringify(response)}`);
-        }
-    }
-}
-
 async function serviceInstanceRedeploy(environmentId, serviceId) {
     console.log("Redeploying Service...")
     console.log("Environment ID:", environmentId)
@@ -31504,9 +31464,6 @@ async function run() {
         // Wait for the created environment to finish initializing
         console.log("Waiting 15 seconds for deployment to initialize and become available")
         await new Promise(resolve => setTimeout(resolve, 15000)); // Wait for 15 seconds
-
-        // Wait for the initial deployment (which is autocreated by createEnvironment) to finish, otherwise you cannot run concurrent deployments
-        await monitorDeploymentStatus();
 
         // Set the Deployment Trigger Branch for Each Service 
         await updateAllDeploymentTriggers(deploymentTriggerIds);
