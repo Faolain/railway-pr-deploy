@@ -31,7 +31,7 @@ The url of PR deployment preview. This would be an api endpoint for example for 
 ```
     - name: Create PR environment on Railway
       if: github.event.action == 'opened'
-      uses: Faolain/railway-pr-deploy@v1.0.5
+      uses: Faolain/railway-pr-deploy@v2.0.4
       with:
         RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
