@@ -9,6 +9,7 @@ const SRC_ENVIRONMENT_ID = core.getInput('SRC_ENVIRONMENT_ID');
 const DEST_ENV_NAME = core.getInput('DEST_ENV_NAME');
 const ENV_VARS = core.getInput('ENV_VARS');
 const API_SERVICE_NAME = core.getInput('API_SERVICE_NAME');
+const IGNORE_SERVICE_REDEPLOY = core.getInput('IGNORE_SERVICE_REDEPLOY');
 const ENDPOINT = 'https://backboard.railway.app/graphql/v2';
 
 // Github Required Inputs
@@ -274,18 +275,10 @@ async function updateEnvironmentVariablesForServices(environmentId, serviceInsta
     }
 }
 
-async function redeployAllServices(environmentId, serviceInstances) {
-    const serviceIds = [];
-
-    // Extract service IDs
-    for (const serviceInstance of serviceInstances.edges) {
-        const { serviceId } = serviceInstance.node;
-        serviceIds.push(serviceId);
-    }
-
+async function redeployAllServices(environmentId, servicesToRedeploy) {
     try {
         // Create an array of promises for redeployments
-        const redeployPromises = serviceIds.map(serviceId =>
+        const redeployPromises = servicesToRedeploy.map(serviceId =>
             serviceInstanceRedeploy(environmentId, serviceId)
         );
 
@@ -359,21 +352,28 @@ async function run() {
         // Set the Deployment Trigger Branch for Each Service 
         await updateAllDeploymentTriggers(deploymentTriggerIds);
 
-        // Redeploy the Services
-        await redeployAllServices(environmentId, serviceInstances);
+        const servicesToIgnore = JSON.parse(IGNORE_SERVICE_REDEPLOY)
+        const servicesToRedeploy = [];
 
         // Get the names for each deployed service
         for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
             const { domains } = serviceInstance.node;
             const { service } = await getService(serviceInstance.node.serviceId);
             const { name } = service;
+
+            if (!servicesToIgnore.includes(name)) {
+                servicesToRedeploy.push(serviceInstance.node.serviceId);
+            }
+
             if ((API_SERVICE_NAME && name === API_SERVICE_NAME) || name === 'app' || name === 'backend' || name === 'web') {
                 const { domain } = domains.serviceDomains?.[0];
                 console.log('Domain:', domain)
                 core.setOutput('service_domain', domain);
-                break;
             }
         }
+
+        // Redeploy the Services
+        await redeployAllServices(environmentId, servicesToRedeploy);
     } catch (error) {
         console.error('Error in API calls:', error);
         // Handle the error, e.g., fail the action
