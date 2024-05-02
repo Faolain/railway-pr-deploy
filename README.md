@@ -19,6 +19,7 @@ This action makes it simple to deploy a PR environment based on an already exist
 | PROVIDER   |  [x]  |         | 'The provider to use for the PR environment. Can be python, see https://nixpacks.com/docs/guides/configuring-builds for more info.'                                                                 |
 | branch_name               | [x]  |         | The name of the branch you will be deploying from Github. Should be `${{ github.head_ref }}`         
 | DEPLOYMENT_MAX_TIMEOUT       |  [ ]|         | 'The maximum amount of time to wait for the deployment to finish. Defaults to 10 minutes.'
+| IGNORE_SERVICE_REDEPLOY       |  [ ]|         | A list of service names to ignore when redeploying the PR environment. This is useful for services that don't need to be redeployed on every PR deployment.
 
 ## Outputs
 

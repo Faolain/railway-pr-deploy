@@ -31,6 +31,9 @@ inputs:
   DEPLOYMENT_MAX_TIMEOUT:
     description: "The maximum amount of time to wait for the deployment to finish. Defaults to 10 minutes."
     required: false
+  IGNORE_SERVICE_REDEPLOY:
+    description: "A list of service names to ignore when redeploying the PR environment. This is useful for services that don't need to be redeployed on every PR deployment."
+    required: false
 outputs:
   domain:
     description: "The domain of the deployed PR environment"
