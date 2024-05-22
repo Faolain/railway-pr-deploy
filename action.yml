@@ -35,7 +35,7 @@ inputs:
     description: "A list of service names to ignore when redeploying the PR environment. This is useful for services that don't need to be redeployed on every PR deployment."
     required: false
 outputs:
-  domain:
+  service_domain:
     description: "The domain of the deployed PR environment"
 runs:
   using: "node16"
