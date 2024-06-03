@@ -16,6 +16,10 @@ inputs:
   DEST_ENV_NAME:
     description: "The name of the deployed PR environment. Usually a combination of pr-<PR_NUMBER>-<SHORT_COMMIT_HASH> passed inside of workflow"
     required: true
+  FAIL_IF_EXISTS:
+    description: "Whether to fail the action if the destination environment already exists. Set to `false` to re-use existing environment"
+    default: "true"
+    required: false
   ENV_VARS:
     description: 'The environment variables to set on the PR environment. Should be a JSON object of key value pairs. e.g. {"DATABASE_URL": "test_url", "A": "abc", "D": "efg"}'
     required: false
