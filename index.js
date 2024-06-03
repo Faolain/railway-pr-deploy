@@ -7,6 +7,7 @@ const PROJECT_ID = core.getInput('PROJECT_ID');
 const SRC_ENVIRONMENT_NAME = core.getInput('SRC_ENVIRONMENT_NAME');
 const SRC_ENVIRONMENT_ID = core.getInput('SRC_ENVIRONMENT_ID');
 const DEST_ENV_NAME = core.getInput('DEST_ENV_NAME');
+const FAIL_IF_EXISTS = core.getInput('FAIL_IF_EXISTS');
 const ENV_VARS = core.getInput('ENV_VARS');
 const API_SERVICE_NAME = core.getInput('API_SERVICE_NAME');
 const IGNORE_SERVICE_REDEPLOY = core.getInput('IGNORE_SERVICE_REDEPLOY');
@@ -83,6 +84,7 @@ async function getEnvironments() {
                     node {
                         id
                         name
+                        createdAt
                         deployments {
                             edges {
                                 node {
@@ -97,11 +99,22 @@ async function getEnvironments() {
                                     id
                                     domains {
                                         serviceDomains {
+                                            id
                                             domain
                                         }
                                     }
                                     serviceId
                                     startCommand
+                                }
+                            }
+                        }
+                        deploymentTriggers {
+                            edges {
+                                node {
+                                    id
+                                    environmentId
+                                    branch
+                                    projectId
                                 }
                             }
                         }
@@ -313,34 +326,41 @@ async function run() {
         // Filter the response to only include the environment name we are looking to create
         const filteredEdges = response.environments.edges.filter((edge) => edge.node.name === DEST_ENV_NAME);
 
+        let environemnt = undefined
         // If there is a match this means the environment already exists
         if (filteredEdges.length == 1) {
-            throw new Error('Environment already exists. Please delete the environment via API or Railway Dashboard and try again.')
-        }
+            if (FAIL_IF_EXISTS === 'true') {
+                throw new Error('Environment already exists. Please delete the environment via API or Railway Dashboard and try again. Alternatively, set the FAIL_IF_EXISTS input to "false" to re-use existing environments.')
+            }
+            environemnt = filteredEdges[0].node
+            console.log("Re-using Environment:")
+            console.dir(environemnt, { depth: null })
+        } else {
+            let srcEnvironmentId = SRC_ENVIRONMENT_ID;
 
-        let srcEnvironmentId = SRC_ENVIRONMENT_ID;
+            // If no source ENV_ID provided get Source Environment ID to base new PR environment from (aka use the same environment variables)
+            if (!SRC_ENVIRONMENT_ID) {
+                srcEnvironmentId = response.environments.edges.filter((edge) => edge.node.name === SRC_ENVIRONMENT_NAME)[0].node.id;
+            }
+    
+            // Create the new Environment based on the Source Environment
+            const createdEnvironment = await createEnvironment(srcEnvironmentId);
+            environment = createdEnvironment.environmentCreate
+            console.log("Created Environment:")
+            console.dir(environment, { depth: null })
+        }       
 
-        // If no source ENV_ID provided get Source Environment ID to base new PR environment from (aka use the same environment variables)
-        if (!SRC_ENVIRONMENT_ID) {
-            srcEnvironmentId = response.environments.edges.filter((edge) => edge.node.name === SRC_ENVIRONMENT_NAME)[0].node.id;
-        }
-
-        // Create the new Environment based on the Source Environment
-        const createdEnvironment = await createEnvironment(srcEnvironmentId);
-        console.log("Created Environment:")
-        console.dir(createdEnvironment, { depth: null })
-
-        const { id: environmentId } = createdEnvironment.environmentCreate;
+        const { id: environmentId } = environment;
 
         // Get all the Deployment Triggers
         const deploymentTriggerIds = [];
-        for (const deploymentTrigger of createdEnvironment.environmentCreate.deploymentTriggers.edges) {
+        for (const deploymentTrigger of environment.deploymentTriggers.edges) {
             const { id: deploymentTriggerId } = deploymentTrigger.node;
             deploymentTriggerIds.push(deploymentTriggerId);
         }
 
         // Get all the Service Instances
-        const { serviceInstances } = createdEnvironment.environmentCreate;
+        const { serviceInstances } = environment;
 
         // Update the Environment Variables on each Service Instance
         await updateEnvironmentVariablesForServices(environmentId, serviceInstances, ENV_VARS);
@@ -356,7 +376,7 @@ async function run() {
         const servicesToRedeploy = [];
 
         // Get the names for each deployed service
-        for (const serviceInstance of createdEnvironment.environmentCreate.serviceInstances.edges) {
+        for (const serviceInstance of environment.serviceInstances.edges) {
             const { domains } = serviceInstance.node;
             const { service } = await getService(serviceInstance.node.serviceId);
             const { name } = service;
